@@ -29,15 +29,12 @@ mkdir -p ~/work ~/personal
 cd ~/work
 git dir-config user.name "Peppa Pig"
 
-git config user.name
+mkdir child && cd child && git init && git config user.name
 # => Peppa Pig
 
 cd ~/personal
 git dir-config user.name "Little Pony"
 
-git config user.name
-# => Little Pony
-
-mkdir child && cd child && git config user.name
+mkdir child && cd child && git init && git config user.name
 # => Little Pony
 ```

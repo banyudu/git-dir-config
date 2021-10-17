@@ -5,8 +5,6 @@ import ini from 'ini'
 import fs from 'fs'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
-import which from 'which'
-import { spawn } from 'child_process'
 import lodashGet from 'lodash.get'
 import lodashSet from 'lodash.set'
 
@@ -27,20 +25,12 @@ const parseGitConfigFile = (file: string) => {
   return {};
 }
 
-const hasGitBin = () => {
-  try {
-    which.sync('git');
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
 // user global .gitconfig
 const homeGitConfigFile = path.join(homeDir, '.gitconfig');
 const homeGitConfig = parseGitConfigFile(homeGitConfigFile);
 
 const cwd = process.cwd();
+const conditionIncludeKey = `includeIf "gitdir:${cwd}/"`
 
 // current dir .gitconfig
 let dirGitConfigFile = path.join(cwd, basename);
@@ -51,13 +41,13 @@ const dirGitConfig = parseGitConfigFile(dirGitConfigFile);
 
 if (value === undefined) {
   // getter mode, output current setting
-  if (hasGitBin()) {
-    spawn('git', ['config', String(key)], { stdio: 'inherit' })
-  } else {
-    const result = lodashGet(dirGitConfig, key, undefined) || lodashGet(homeGitConfig, key, undefined);
-    if (result) {
-      console.log(result)
-    }
+  let result = lodashGet(homeGitConfig, key, undefined);
+  const dirConfigResult = lodashGet(dirGitConfig, key, undefined)
+  if (dirConfigResult !== undefined && homeGitConfig[conditionIncludeKey]?.path === dirGitConfigFile) {
+    result = dirConfigResult;
+  }
+  if (result) {
+    console.log(result)
   }
 
   // exit
@@ -68,7 +58,6 @@ if (value === undefined) {
   const dirConfigStr = ini.stringify(dirGitConfig);
   fs.writeFileSync(dirGitConfigFile, dirConfigStr, 'utf-8');
 
-  const conditionIncludeKey = `includeIf "gitdir:${cwd}"`
   homeGitConfig[conditionIncludeKey] = {
     path: dirGitConfigFile
   }
